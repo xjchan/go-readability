@@ -21,21 +21,21 @@ import (
 
 // FromReader parses an `io.Reader` and returns the readable content. It's the wrapper
 // or `Parser.Parse()` and useful if you only want to use the default parser.
-func FromReader(input io.Reader, pageURL *nurl.URL) (Article, error) {
-	parser := NewParser()
+func FromReader(input io.Reader, pageURL *nurl.URL, optionsList ...Options) (Article, error) {
+	parser := NewParser(optionsList...)
 	return parser.Parse(input, pageURL)
 }
 
 // FromDocument parses an document and returns the readable content. It's the wrapper
 // or `Parser.ParseDocument()` and useful if you only want to use the default parser.
-func FromDocument(doc *html.Node, pageURL *nurl.URL) (Article, error) {
-	parser := NewParser()
+func FromDocument(doc *html.Node, pageURL *nurl.URL, optionsList ...Options) (Article, error) {
+	parser := NewParser(optionsList...)
 	return parser.ParseDocument(doc, pageURL)
 }
 
 // FromURL fetch the web page from specified url then parses the response to find
 // the readable content.
-func FromURL(pageURL string, timeout time.Duration) (Article, error) {
+func FromURL(pageURL string, timeout time.Duration, optionsList ...Options) (Article, error) {
 	// Make sure URL is valid
 	parsedURL, err := nurl.ParseRequestURI(pageURL)
 	if err != nil {
@@ -57,21 +57,21 @@ func FromURL(pageURL string, timeout time.Duration) (Article, error) {
 	}
 
 	// Parse content
-	parser := NewParser()
+	parser := NewParser(optionsList...)
 	return parser.Parse(resp.Body, parsedURL)
 }
 
 // Check checks whether the input is readable without parsing the whole thing. It's the
 // wrapper for `Parser.Check()` and useful if you only use the default parser.
-func Check(input io.Reader) bool {
-	parser := NewParser()
+func Check(input io.Reader, optionsList ...Options) bool {
+	parser := NewParser(optionsList...)
 	return parser.Check(input)
 }
 
 // CheckDocument checks whether the document is readable without parsing the whole thing.
 // It's the wrapper for `Parser.CheckDocument()` and useful if you only use the default
 // parser.
-func CheckDocument(doc *html.Node) bool {
-	parser := NewParser()
+func CheckDocument(doc *html.Node, optionsList ...Options) bool {
+	parser := NewParser(optionsList...)
 	return parser.CheckDocument(doc)
 }

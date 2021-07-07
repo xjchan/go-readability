@@ -98,26 +98,7 @@ type Article struct {
 
 // Parser is the parser that parses the page to get the readable content.
 type Parser struct {
-	// MaxElemsToParse is the max number of nodes supported by this
-	// parser. Default: 0 (no limit)
-	MaxElemsToParse int
-	// NTopCandidates is the number of top candidates to consider when
-	// analysing how tight the competition is among candidates.
-	NTopCandidates int
-	// CharThresholds is the default number of chars an article must
-	// have in order to return a result
-	CharThresholds int
-	// ClassesToPreserve are the classes that readability sets itself.
-	ClassesToPreserve []string
-	// KeepClasses specify whether the classes should be stripped or not.
-	KeepClasses bool
-	// TagsToScore is element tags to score by default.
-	TagsToScore []string
-	// Debug determines if the log should be printed or not. Default: false.
-	Debug bool
-	// DisableJSONLD determines if metadata in JSON+LD will be extracted
-	// or not. Default: false.
-	DisableJSONLD bool
+	Options
 
 	doc             *html.Node
 	documentURI     *nurl.URL
@@ -130,15 +111,16 @@ type Parser struct {
 }
 
 // NewParser returns new Parser which set up with default value.
-func NewParser() Parser {
+func NewParser(optionsList ...Options) Parser {
+	var options Options
+	if len(optionsList) == 0 {
+		options = NewDefaultOptions()
+	} else {
+		options = optionsList[0]
+	}
+
 	return Parser{
-		MaxElemsToParse:   0,
-		NTopCandidates:    5,
-		CharThresholds:    500,
-		ClassesToPreserve: []string{"page"},
-		KeepClasses:       false,
-		TagsToScore:       []string{"section", "h2", "h3", "h4", "h5", "h6", "p", "td", "pre"},
-		Debug:             false,
+		Options: options,
 	}
 }
 
@@ -873,26 +855,26 @@ func (ps *Parser) grabArticle() *html.Node {
 				return
 			}
 
-			// If this paragraph is less than 25 characters, don't even count it.
+			// If this paragraph is less than "MinCharactersOfParagraph" characters, don't even count it.
 			innerText := ps.getInnerText(elementToScore, true)
-			if charCount(innerText) < 25 {
+			if charCount(innerText) < ps.MinCharactersOfParagraph {
 				return
 			}
 
 			// Exclude nodes with no ancestor.
-			ancestors := ps.getNodeAncestors(elementToScore, 5)
+			ancestors := ps.getNodeAncestors(elementToScore, ps.MaxDepthToScore)
 			if len(ancestors) == 0 {
 				return
 			}
 
 			// Add a point for the paragraph itself as a base.
-			contentScore := 1
+			contentScore := ps.BasePointOfParagraph
 
 			// Add points for any commas within this paragraph.
 			contentScore += strings.Count(innerText, ",")
 
-			// For every 100 characters in this paragraph, add another point. Up to 3 points.
-			contentScore += int(math.Min(math.Floor(float64(charCount(innerText))/100.0), 3.0))
+			// For every "CharactersPerPoint" characters in this paragraph, add another point. Up to "MaxPointOfParagraph" points.
+			contentScore += int(math.Min(math.Floor(float64(charCount(innerText))/ps.CharactersPerPoint), ps.MaxPointOfParagraph))
 
 			// Initialize and score ancestors.
 			ps.forEachNode(ancestors, func(ancestor *html.Node, level int) {
